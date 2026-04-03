@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   SignOut, Plus, Pencil, Trash, FolderOpen,
-  Images, X, UploadSimple, CheckCircle, Warning
+  Images, X, UploadSimple, CheckCircle, Warning, EnvelopeSimple
 } from '@phosphor-icons/react';
 import {
   collection, getDocs, deleteDoc, doc, orderBy, query,
@@ -13,13 +13,16 @@ import { db } from '../firebase';
 import { uploadFile, deleteFile } from '../lib/storage';
 import { useAuth } from '../contexts/AuthContext';
 import ProjectForm from '../components/admin/ProjectForm';
+import MessagesManager from '../components/admin/MessagesManager';
+
+import ImageCropper from '../components/admin/ImageCropper';
 
 // ─── Hero Image Manager ────────────────────────────────────────────
 function HeroImageManager() {
   const [heroImages, setHeroImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadingProgress, setUploadingProgress] = useState(0);
+  const [cropFile, setCropFile] = useState(null);
   const [toast, setToast] = useState('');
   const fileInputRef = useRef();
 
@@ -43,31 +46,26 @@ function HeroImageManager() {
     setHeroImages(images);
   };
 
-  const handleUpload = async (e) => {
-    const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
-    if (!files.length) return;
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    setCropFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
+  };
+
+  const handleCropComplete = async (croppedFile) => {
+    setCropFile(null); // Close cropper
     setUploading(true);
-    setUploadingProgress(0);
     try {
-      const newUrls = [];
-      let done = 0;
-      for (const file of files) {
-        const url = await uploadFile(file, 'hero');
-        newUrls.push(url);
-        done++;
-        setUploadingProgress(Math.round((done / files.length) * 100));
-      }
-      const updated = [...heroImages, ...newUrls];
+      const url = await uploadFile(croppedFile, 'hero');
+      const updated = [...heroImages, url];
       await saveHero(updated);
-      showToast('Hero images updated!');
+      showToast('Hero image updated!');
     } catch (err) {
       showToast(`Upload failed: ${err.message}`);
       console.error(err);
     } finally {
       setUploading(false);
-      setUploadingProgress(0);
-      // Reset input so the same file can be re-selected
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -87,13 +85,12 @@ function HeroImageManager() {
         </div>
         <label className={`flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white font-semibold cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(var(--accent-rgb),0.3)] transition-all text-sm ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}>
           <UploadSimple size={18} />
-          {uploading ? `Uploading… ${uploadingProgress}%` : 'Upload Images'}
+          {uploading ? `Uploading...` : 'Upload Hero Image'}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            multiple
-            onChange={handleUpload}
+            onChange={handleFileSelect}
             className="hidden"
             disabled={uploading}
           />
@@ -116,7 +113,7 @@ function HeroImageManager() {
               <img src={url} alt="" className="w-full h-full object-cover" />
               {i === 0 && (
                 <span className="absolute top-1 left-1 text-[10px] bg-accent text-white px-1.5 py-0.5 rounded-full font-bold">
-                  Card 1
+                  Front
                 </span>
               )}
               <button
@@ -128,6 +125,15 @@ function HeroImageManager() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Cropper Modal */}
+      {cropFile && (
+        <ImageCropper 
+          file={cropFile} 
+          onCropComplete={handleCropComplete} 
+          onCancel={() => setCropFile(null)} 
+        />
       )}
 
       {/* Toast */}
@@ -280,6 +286,17 @@ export default function AdminDashboard() {
             <Images size={18} />
             Hero Images
           </button>
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all ${
+              activeTab === 'messages'
+                ? 'bg-accent text-white shadow-lg'
+                : 'border border-glassBorder text-textMuted hover:text-textMain'
+            }`}
+          >
+            <EnvelopeSimple size={18} />
+            Messages
+          </button>
         </div>
 
         {/* ── Projects Tab ── */}
@@ -383,6 +400,9 @@ export default function AdminDashboard() {
 
         {/* ── Hero Tab ── */}
         {activeTab === 'hero' && <HeroImageManager />}
+
+        {/* ── Messages Tab ── */}
+        {activeTab === 'messages' && <MessagesManager />}
       </main>
 
       {/* ── Modals ── */}

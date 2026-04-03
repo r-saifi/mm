@@ -1,21 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Sun, Moon, UserCircle } from '@phosphor-icons/react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { gsap } from "gsap";
+import { X, Menu, Eye, EyeOff, User, Sun, Moon } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
 
-  // Only show anchor links on homepage
   const isHome = location.pathname === '/';
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -25,78 +29,189 @@ export default function Navbar() {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+  const handleNavigate = (path) => {
+    if (path.startsWith('#')) {
+      if (isHome) {
+        setIsMobileMenuOpen(false);
+        const el = document.querySelector(path);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        navigate('/' + path);
+      }
+    } else {
+      navigate(path);
+      setIsMobileMenuOpen(false);
+    }
+    
+    // Smooth fade out effect for UI if any (mimicking the user's snippet logic)
+    gsap.to("#hero-content", {
+      opacity: 0.8,
+      duration: 0.4,
+      onComplete: () => {
+        gsap.to("#hero-content", { opacity: 1, duration: 0.4 });
+      },
+    });
+  };
+
+  // Navigation Items
+  const navItems = [
+    { name: 'HOME', path: '#home' },
+    { name: 'ABOUT', path: '#about' },
+    { name: 'SERVICES', path: '#services' },
+    { name: 'PROJECTS', path: '#portfolio' },
+    { name: 'CONTACT', path: '#contact' },
+  ];
+
+  // Mobile Navbar
+  if (typeof window !== "undefined" && window.innerWidth < 768) {
+    return (
+      <>
+        <nav
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+            isScrolled
+              ? "bg-bgMain/95 backdrop-blur-xl border-b border-accent/20"
+              : "bg-transparent"
+          }`}
+        >
+          <div className="flex items-center justify-between px-6 py-4">
+            <Link to="/" className="flex items-center gap-2">
+              <div className={`text-accent font-display font-black transition-all duration-500 ${isScrolled ? "text-lg" : "text-xl"}`}>
+                MM DESIGN
+              </div>
+            </Link>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg border border-glassBorder bg-glassBg text-textMain"
+              >
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              
+              <button
+                className="relative z-50 p-2 rounded-lg transition-all duration-200"
+                style={{
+                  background: isMobileMenuOpen
+                    ? "rgba(var(--accent-rgb), 0.1)"
+                    : "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(var(--accent-rgb), 0.2)",
+                }}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X size={20} className="text-accent" />
+                ) : (
+                  <Menu size={20} className="text-textMain/80" />
+                )}
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 bg-bgMain/95 backdrop-blur-xl flex flex-col items-center justify-center">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            </div>
+            
+            <div className="relative flex flex-col items-center space-y-8 px-4 text-center">
+              <div className="mb-4">
+                <h2 className="text-2xl font-display font-light text-textMain tracking-[0.2em]">NAVIGATION</h2>
+                <div className="w-12 h-0.5 bg-accent mx-auto mt-2"></div>
+              </div>
+
+              {navItems.map((item, index) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigate(item.path)}
+                  className="text-2xl font-light text-textMain/90 tracking-[0.15em] transition-all hover:text-accent hover:scale-110"
+                  style={{
+                    transitionDelay: `${index * 100}ms`,
+                    opacity: isMobileMenuOpen ? 1 : 0,
+                  }}
+                >
+                  {item.name}
+                </button>
+              ))}
+
+              <Link
+                to={currentUser ? "/admin/dashboard" : "/admin"}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-xl font-light text-textMuted tracking-[0.1em] flex items-center gap-2 hover:text-accent"
+              >
+                <User size={20} />
+                ADMIN PANEL
+              </Link>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // Desktop Navbar
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-50 flex items-center justify-between px-[5%] py-6 transition-all duration-300 ${
-        isScrolled ? 'py-4 glass shadow-glass' : 'bg-transparent'
+      className={`fixed top-3 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-out flex items-center justify-between ${
+        isScrolled
+          ? "bg-bgMain/80 backdrop-blur-xl rounded-full border border-glassBorder shadow-2xl px-10 py-3 w-[90%] max-w-5xl"
+          : "bg-transparent border-transparent px-6 py-4 w-full max-w-7xl"
       }`}
     >
-      <Link to="/" className="flex flex-col tracking-wider font-display shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-            <img
-              src="/images/new_logo.png"
-              alt="Logo mark"
-              className="h-[50px] w-auto object-cover"
-              onError={(e) => e.target.style.display = 'none'}
-            />
+      <div className="flex-shrink-0">
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="bg-accent rounded-lg p-1 transition-transform group-hover:scale-110">
+            <img src="/images/new_logo.png" alt="" className="h-8 w-auto" />
           </div>
-          <span className="text-2xl font-display font-black leading-none text-textMain tracking-tighter uppercase mt-0.5">
-            DESIGN
-          </span>
-        </div>
-      </Link>
+          <div className={`text-textMain font-display font-black tracking-tighter transition-all duration-500 ${isScrolled ? "text-lg" : "text-xl"}`}>
+            MM <span className="text-accent underline decoration-2 underline-offset-4">DESIGN</span>
+          </div>
+        </Link>
+      </div>
 
-      <ul className="hidden md:flex gap-10 font-medium">
-        {isHome ? (
-          <>
-            <li><a href="#home" className="hover:text-accent transition-colors">Home</a></li>
-            <li><a href="#about" className="hover:text-accent transition-colors">About</a></li>
-            <li><a href="#services" className="hover:text-accent transition-colors">Services</a></li>
-            <li><a href="#portfolio" className="hover:text-accent transition-colors">Our Work</a></li>
-          </>
-        ) : (
-          <>
-            <li><Link to="/#home" className="hover:text-accent transition-colors">Home</Link></li>
-            <li><Link to="/#about" className="hover:text-accent transition-colors">About</Link></li>
-            <li><Link to="/#services" className="hover:text-accent transition-colors">Services</Link></li>
-            <li><Link to="/#portfolio" className="hover:text-accent transition-colors">Our Work</Link></li>
-          </>
-        )}
-      </ul>
+      <div className={`flex items-center transition-all duration-500 ${isScrolled ? "space-x-6" : "space-x-10"}`}>
+        {navItems.map((item) => (
+          <button
+            key={item.name}
+            onClick={() => handleNavigate(item.path)}
+            className={`tracking-wide transition-all hover:text-accent ${
+              isScrolled ? "text-xs text-textMain font-bold" : "text-sm text-textMain font-medium"
+            }`}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <button
           onClick={toggleTheme}
-          className="w-10 h-10 rounded-full flex items-center justify-center border border-glassBorder bg-glassBg backdrop-blur hover:bg-accent hover:text-white transition-all hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(var(--accent-rgb),0.3)]"
-          aria-label="Toggle Theme"
+          className={`flex items-center justify-center rounded-full border border-glassBorder transition-all hover:bg-accent hover:text-white ${
+            isScrolled ? "w-8 h-8" : "w-10 h-10"
+          }`}
+          title="Toggle Theme"
         >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          {theme === 'dark' ? <Sun size={isScrolled ? 16 : 18} /> : <Moon size={isScrolled ? 16 : 18} />}
         </button>
 
-        {/* Admin icon — subtle, only visible to those who know */}
         <Link
           to={currentUser ? "/admin/dashboard" : "/admin"}
-          title="Admin"
-          className="w-10 h-10 rounded-full flex items-center justify-center border border-glassBorder bg-glassBg backdrop-blur hover:bg-accent hover:text-white transition-all hover:-translate-y-1 text-textMuted"
+          className={`flex items-center justify-center rounded-full border border-glassBorder transition-all hover:bg-accent hover:text-white ${
+            isScrolled ? "w-8 h-8" : "w-10 h-10"
+          }`}
+          title="Admin Panel"
         >
-          <UserCircle size={22} weight={currentUser ? 'fill' : 'regular'} />
+          <User size={isScrolled ? 16 : 18} weight={currentUser ? 'fill' : 'regular'} />
         </Link>
 
-        {isHome ? (
-          <a
-            href="#contact"
-            className="px-6 py-3 rounded-full bg-accent text-white font-medium hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(var(--accent-rgb),0.4)] transition-all hidden sm:block"
+        {!isScrolled && (
+          <button
+            onClick={() => handleNavigate('#contact')}
+            className="px-6 py-2.5 bg-accent text-white rounded-full font-bold text-sm hover:-translate-y-0.5 hover:shadow-lg transition-all"
           >
-            Let's Talk
-          </a>
-        ) : (
-          <Link
-            to="/#contact"
-            className="px-6 py-3 rounded-full bg-accent text-white font-medium hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(var(--accent-rgb),0.4)] transition-all hidden sm:block"
-          >
-            Let's Talk
-          </Link>
+            LET'S TALK
+          </button>
         )}
       </div>
     </nav>

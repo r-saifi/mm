@@ -27,9 +27,13 @@ export default function AdminLogin() {
       await login(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found'
-        ? 'Invalid email or password.'
-        : 'Failed to sign in. Please try again.';
+      console.error(err);
+      let msg = 'Failed to sign in. Please try again.';
+      if (err.message.includes('Unauthorized')) {
+        msg = err.message;
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        msg = 'Invalid email or password.';
+      }
       setError(msg);
     } finally {
       setLoading(false);
