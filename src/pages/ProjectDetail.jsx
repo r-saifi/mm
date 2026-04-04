@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CaretLeft, CaretRight, X, MagnifyingGlassPlus } from '@phosphor-icons/react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../lib/supabase';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -19,9 +18,9 @@ export default function ProjectDetail() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const snap = await getDoc(doc(db, 'projects', id));
-        if (snap.exists()) {
-          setProject({ id: snap.id, ...snap.data() });
+        const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
+        if (!error && data) {
+          setProject(data);
         } else {
           setNotFound(true);
         }

@@ -5,11 +5,7 @@ import {
   SignOut, Plus, Pencil, Trash, FolderOpen,
   Images, X, UploadSimple, CheckCircle, Warning, EnvelopeSimple
 } from '@phosphor-icons/react';
-import {
-  collection, getDocs, deleteDoc, doc, orderBy, query,
-  setDoc, getDoc
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../lib/supabase';
 import { uploadFile, deleteFile } from '../lib/storage';
 import { useAuth } from '../contexts/AuthContext';
 import ProjectForm from '../components/admin/ProjectForm';
@@ -33,8 +29,8 @@ function HeroImageManager() {
 
   const fetchHero = async () => {
     try {
-      const snap = await getDoc(doc(db, 'settings', 'hero'));
-      if (snap.exists()) setHeroImages(snap.data().images || []);
+      const { data, error } = await supabase.from('settings').select('value').eq('key', 'hero').single();
+      if (!error && data) setHeroImages(data.value?.images || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -42,7 +38,7 @@ function HeroImageManager() {
   useEffect(() => { fetchHero(); }, []);
 
   const saveHero = async (images) => {
-    await setDoc(doc(db, 'settings', 'hero'), { images });
+    await supabase.from('settings').upsert({ key: 'hero', value: { images } });
     setHeroImages(images);
   };
 
@@ -200,9 +196,8 @@ export default function AdminDashboard() {
   const fetchProjects = async () => {
     setLoadingProjects(true);
     try {
-      const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const { data, error } = await supabase.from('projects').select('*').order('createdAt', { ascending: false });
+      if (!error && data) setProjects(data);
     } catch (e) {
       console.error(e);
     }
@@ -218,7 +213,7 @@ export default function AdminDashboard() {
 
   const handleDelete = async (project) => {
     try {
-      await deleteDoc(doc(db, 'projects', project.id));
+      await supabase.from('projects').delete().eq('id', project.id);
       setProjects(prev => prev.filter(p => p.id !== project.id));
       setModal(null);
     } catch (e) {

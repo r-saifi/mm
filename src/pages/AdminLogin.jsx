@@ -28,10 +28,8 @@ export default function AdminLogin() {
       navigate('/admin/dashboard');
     } catch (err) {
       console.error(err);
-      let msg = 'Failed to sign in. Please try again.';
-      if (err.message.includes('Unauthorized')) {
-        msg = err.message;
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+      let msg = err.message || 'Failed to sign in. Please try again.';
+      if (msg.includes('Invalid login credentials')) {
         msg = 'Invalid email or password.';
       }
       setError(msg);

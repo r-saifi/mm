@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../lib/supabase';
 
 const CATEGORIES = ["All", "Residential", "Commercial", "Interior", "Landscape"];
 
@@ -13,16 +12,31 @@ export default function PortfolioMasonry() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setProjects(data);
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      
+      if (!error && data) {
+        setProjects(data);
+      } else if (error) {
+        console.error(error);
+      }
       setLoading(false);
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-    });
-    return unsub;
+    };
+
+    fetchProjects();
+
+    const channel = supabase.channel('public:projects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        fetchProjects();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filtered = filter === "All"

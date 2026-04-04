@@ -1,34 +1,50 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnvelopeSimple, EnvelopeOpen, Trash, CheckCircle } from '@phosphor-icons/react';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { supabase } from '../../lib/supabase';
 
 export default function MessagesManager() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(d.data().createdAt),
-      }));
-      setMessages(data);
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      
+      if (!error && data) {
+        // Ensure createdAt is a Date object for the UI
+        const parsed = data.map(d => ({
+          ...d,
+          createdAt: d.createdAt ? new Date(d.createdAt) : new Date()
+        }));
+        setMessages(parsed);
+      } else if (error) {
+        console.error(error);
+      }
       setLoading(false);
-    }, (err) => {
-      console.error(err);
-      setLoading(false);
-    });
-    return unsub;
+    };
+
+    fetchMessages();
+
+    const channel = supabase.channel('public:messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        fetchMessages();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const markAsRead = async (id, currentStatus) => {
     if (currentStatus === 'read') return;
     try {
-      await updateDoc(doc(db, 'messages', id), { status: 'read' });
+      const { error } = await supabase.from('messages').update({ status: 'read' }).eq('id', id);
+      if (error) throw error;
     } catch (e) {
       console.error("Error updating message", e);
     }
@@ -37,7 +53,8 @@ export default function MessagesManager() {
   const deleteMessage = async (id) => {
     if (!window.confirm("Are you sure you want to delete this message?")) return;
     try {
-      await deleteDoc(doc(db, 'messages', id));
+      const { error } = await supabase.from('messages').delete().eq('id', id);
+      if (error) throw error;
     } catch (e) {
       console.error("Error deleting message", e);
     }
