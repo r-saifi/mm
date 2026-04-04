@@ -1,7 +1,43 @@
+import { useState } from 'react';
 import { MapPin, Phone, EnvelopeSimple } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 
 export default function Contact() {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    // Import Firestore functions dynamically or at top (we use standard import above but need to define it)
+    try {
+      const formData = new FormData(e.target);
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        project: formData.get('project'),
+        message: formData.get('message'),
+        status: 'unread',
+        createdAt: new Date()
+      };
+      
+      const { collection, addDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase');
+      
+      await addDoc(collection(db, 'messages'), data);
+      
+      setSubmitted(true);
+      e.target.reset();
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (error) {
+      console.error("Error submitting form: ", error);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section id="contact" className="py-24 px-[5%] relative">
       <div className="max-w-7xl mx-auto">
@@ -58,7 +94,19 @@ export default function Contact() {
             viewport={{ once: true }}
             className="flex flex-col justify-center"
           >
-            <form action="https://formspree.io/f/mqaelgoy" method="POST" className="glass p-10 md:p-12 rounded-3xl flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="glass p-10 md:p-12 rounded-3xl flex flex-col gap-6 relative">
+              {submitted && (
+                <div className="absolute inset-0 bg-glassBg backdrop-blur-md rounded-3xl flex flex-col items-center justify-center z-10 animate-in fade-in duration-300">
+                  <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4 border border-green-500/30">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-display font-bold text-white mb-2">Message Sent</h3>
+                  <p className="text-textMuted text-center max-w-[80%]">Thank you for reaching out. We will get back to you shortly.</p>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-sm font-semibold text-textMuted uppercase tracking-wider">Your Name</label>
@@ -108,10 +156,11 @@ export default function Contact() {
                 ></textarea>
               </div>
               <button 
-                type="submit" 
-                className="mt-4 w-full bg-accent text-white font-semibold py-4 rounded-xl hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(var(--accent-rgb),0.3)] transition-all"
+                type="submit"
+                disabled={submitting}
+                className="mt-4 w-full bg-accent text-white font-semibold py-4 rounded-xl hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(var(--accent-rgb),0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Message
+                {submitting ? "Sending..." : "Send Message"}
               </button>
             </form>
           </motion.div>

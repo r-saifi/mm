@@ -1,30 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
-const CATEGORIES = ["All", "Residential", "Commercial", "Interior"];
+const CATEGORIES = ["All", "Residential", "Commercial", "Interior", "Landscape"];
 
-const PORTFOLIO_DATA = [
-    { id: 1, src: "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800&h=1200&fit=crop", cat: "Residential" },
-    { id: 2, src: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&h=800&fit=crop", cat: "Interior" },
-    { id: 3, src: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&h=1000&fit=crop", cat: "Commercial" },
-    { id: 4, src: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=800&fit=crop", cat: "Residential" },
-    { id: 5, src: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&h=1200&fit=crop", cat: "Interior" },
-    { id: 6, src: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=800&fit=crop", cat: "Commercial" },
-    { id: 7, src: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1000&h=800&fit=crop", cat: "Residential" },
-    { id: 8, src: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=1000&fit=crop", cat: "Commercial" }
-];
-
-export default function PortfolioMasonry({ onImageClick }) {
+export default function PortfolioMasonry() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const navigate = useNavigate();
 
-  const filteredImages = filter === "All" 
-    ? PORTFOLIO_DATA 
-    : PORTFOLIO_DATA.filter(img => img.cat === filter);
+  useEffect(() => {
+    const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setProjects(data);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const filtered = filter === "All"
+    ? projects
+    : projects.filter(p => p.category === filter);
 
   return (
     <section id="portfolio" className="py-24 px-[5%] bg-bgSecondary">
       <div className="max-w-7xl mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -41,8 +49,8 @@ export default function PortfolioMasonry({ onImageClick }) {
                 key={cat}
                 onClick={() => setFilter(cat)}
                 className={`px-6 py-2 rounded-full font-medium transition-all ${
-                  filter === cat 
-                    ? 'bg-accent text-white shadow-lg' 
+                  filter === cat
+                    ? 'bg-accent text-white shadow-lg'
                     : 'bg-glassBg border border-glassBorder hover:text-accent'
                 }`}
               >
@@ -52,33 +60,61 @@ export default function PortfolioMasonry({ onImageClick }) {
           </div>
         </motion.div>
 
-        <motion.div layout className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-          <AnimatePresence>
-            {filteredImages.map((img) => (
-              <motion.div
-                key={img.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-                className="relative group rounded-2xl overflow-hidden cursor-pointer"
-                onClick={() => onImageClick(img.src)}
-              >
-                <img 
-                  src={img.src} 
-                  alt={img.cat} 
-                  className="w-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <span className="text-white font-display text-lg tracking-wider border border-white/30 px-6 py-2 rounded-full backdrop-blur-sm">
-                    View Project
-                  </span>
-                </div>
-              </motion.div>
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="rounded-2xl bg-glassBg animate-pulse" style={{ height: `${180 + i * 30}px` }} />
             ))}
-          </AnimatePresence>
-        </motion.div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-24 text-textMuted">
+            <p className="text-lg">No projects in this category yet.</p>
+          </div>
+        )}
+
+        {/* Masonry Grid — layout preserved exactly */}
+        {!loading && filtered.length > 0 && (
+          <motion.div layout className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+            <AnimatePresence>
+              {filtered.map((project) => (
+                <motion.div
+                  key={project.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative group rounded-2xl overflow-hidden cursor-pointer break-inside-avoid"
+                  onClick={() => navigate(`/project/${project.id}`)}
+                >
+                  <img
+                    src={project.coverImage || project.images?.[0]}
+                    alt={project.title}
+                    className="w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                    <p className="text-white/70 text-xs uppercase tracking-widest mb-1">{project.category}</p>
+                    <h3 className="text-white font-display font-semibold text-lg leading-tight">{project.title}</h3>
+                    <span className="mt-3 inline-block text-white text-sm font-medium border border-white/30 px-4 py-1.5 rounded-full backdrop-blur-sm w-fit">
+                      View Project →
+                    </span>
+                  </div>
+                  {/* Photo count badge */}
+                  {project.images?.length > 1 && (
+                    <span className="absolute top-3 right-3 text-xs text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      {project.images.length} photos
+                    </span>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
       </div>
     </section>
   );
