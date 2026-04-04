@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../lib/supabase';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,17 +35,29 @@ export default function HeroStack({ onImageClick }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'hero'), (snap) => {
-      let imgs = snap.exists() && snap.data().images?.length > 0 ? snap.data().images : [];
-      // Pad with fallbacks if less than 3 so at least one complete collage shows
+    const fetchHero = async () => {
+      const { data, error } = await supabase.from('settings').select('value').eq('key', 'hero').single();
+      let imgs = data?.value?.images || [];
+      if (imgs.length === 0) {
+        imgs = [...FALLBACK_IMAGES];
+      }
       while (imgs.length < 3) {
         imgs.push(FALLBACK_IMAGES[imgs.length % 3]);
       }
       setHeroImages(imgs);
-    }, () => {
-      setHeroImages(FALLBACK_IMAGES);
-    });
-    return unsub;
+    };
+
+    fetchHero();
+
+    const channel = supabase.channel('public:settings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: 'key=eq.hero' }, () => {
+        fetchHero();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {

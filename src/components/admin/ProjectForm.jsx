@@ -1,9 +1,6 @@
 import { useRef, useState } from 'react';
-import { db } from '../../firebase';
+import { supabase } from '../../lib/supabase';
 import { uploadFiles } from '../../lib/storage';
-import {
-  collection, addDoc, updateDoc, doc, serverTimestamp
-} from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UploadSimple, CheckCircle } from '@phosphor-icons/react';
 
@@ -57,14 +54,15 @@ export default function ProjectForm({ project, onSuccess, onCancel }) {
         category,
         images: allImages,
         coverImage: allImages[0],
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       };
 
       if (isEditing) {
-        await updateDoc(doc(db, 'projects', project.id), data);
+        const { error } = await supabase.from('projects').update(data).eq('id', project.id);
+        if (error) throw error;
       } else {
-        data.createdAt = serverTimestamp();
-        await addDoc(collection(db, 'projects'), data);
+        const { error } = await supabase.from('projects').insert([data]);
+        if (error) throw error;
       }
 
       onSuccess();

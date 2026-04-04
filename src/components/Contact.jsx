@@ -22,10 +22,10 @@ export default function Contact() {
         createdAt: new Date()
       };
       
-      const { collection, addDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase');
+      const { supabase } = await import('../lib/supabase');
       
-      await addDoc(collection(db, 'messages'), data);
+      const { error } = await supabase.from('messages').insert([data]);
+      if (error) throw error;
       
       setSubmitted(true);
       e.target.reset();
