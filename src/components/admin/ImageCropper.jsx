@@ -60,11 +60,19 @@ export default function ImageCropper({ file, onCropComplete, onCancel }) {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
+  const [aspect, setAspect] = useState(16 / 9); // Default to landscape
 
   React.useEffect(() => {
     const reader = new FileReader();
     reader.onload = () => {
       setImageSrc(reader.result);
+      
+      // Calculate original image aspect ratio so we can load the "complete" image
+      const img = new Image();
+      img.onload = () => {
+        setAspect(img.width / img.height);
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
   }, [file]);
@@ -113,7 +121,7 @@ export default function ImageCropper({ file, onCropComplete, onCancel }) {
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={4 / 5} // Using a consistent 4:5 vertical ratio for hero stack cards
+            aspect={aspect} // Use original image ratio so the entire image fits
             onCropChange={onCropChange}
             onCropComplete={onCropCompleteFn}
             onZoomChange={onZoomChange}

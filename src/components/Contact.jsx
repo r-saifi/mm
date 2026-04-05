@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MapPin, Phone, EnvelopeSimple } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
+import emailjs from '@emailjs/browser';
 
 export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +27,25 @@ export default function Contact() {
       
       const { error } = await supabase.from('messages').insert([data]);
       if (error) throw error;
+      
+      try {
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            name: data.name,
+            from_name: data.name,
+            email: data.email,
+            from_email: data.email,
+            reply_to: data.email,
+            project: data.project,
+            message: data.message
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        );
+      } catch (emailError) {
+        console.error("EmailJS failed to send email (check credentials):", emailError);
+      }
       
       setSubmitted(true);
       e.target.reset();

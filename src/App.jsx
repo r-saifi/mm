@@ -53,7 +53,7 @@ function HomePage() {
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <Navbar />
       <main className="flex-grow">
-        <HeroStack onImageClick={(src) => openLightbox(src, HERO_IMAGES)} />
+        <HeroStack onImageClick={(src, images) => openLightbox(src, images)} />
         <About />
         <Services />
         <PortfolioMasonry />

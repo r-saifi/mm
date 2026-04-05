@@ -74,9 +74,13 @@ export default function Navbar() {
           }`}
         >
           <div className="flex items-center justify-between px-6 py-4">
-            <Link to="/" className="flex items-center gap-2">
-              <div className={`text-accent font-display font-black transition-all duration-500 ${isScrolled ? "text-lg" : "text-xl"}`}>
-                MM DESIGN
+            <Link to="/" className="flex items-center gap-3">
+              <div className="overflow-hidden rounded-md shadow-md shadow-accent/20 border border-accent/20">
+                <img src="/images/new_logo.png" alt="MM Design" className={`w-auto transition-all duration-500 ${isScrolled ? "h-8" : "h-10"}`} />
+              </div>
+              <div className="flex flex-col border-l-2 border-accent/40 pl-3">
+                <span className="text-textMain font-display font-black tracking-[0.2em] text-base leading-none uppercase">Design</span>
+                <span className="text-accent text-[9px] font-bold tracking-[0.3em] uppercase mt-1">Studio</span>
               </div>
             </Link>
 
@@ -161,11 +165,12 @@ export default function Navbar() {
     >
       <div className="flex-shrink-0">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="bg-accent rounded-lg p-1 transition-transform group-hover:scale-110">
-            <img src="/images/new_logo.png" alt="" className="h-8 w-auto" />
+          <div className="overflow-hidden rounded-md transition-transform duration-500 group-hover:scale-105 shadow-md shadow-accent/20 border border-accent/20">
+            <img src="/images/new_logo.png" alt="MM Design" className="h-10 w-auto" />
           </div>
-          <div className={`text-textMain font-display font-black tracking-tighter transition-all duration-500 ${isScrolled ? "text-lg" : "text-xl"}`}>
-            MM <span className="text-accent underline decoration-2 underline-offset-4">DESIGN</span>
+          <div className="flex flex-col justify-center border-l-2 border-accent/40 pl-3">
+            <span className="text-textMain font-display font-black tracking-[0.2em] text-xl leading-none uppercase">Design</span>
+            <span className="text-accent text-[10px] font-bold tracking-[0.35em] uppercase mt-1">Studio</span>
           </div>
         </Link>
       </div>
@@ -176,7 +181,7 @@ export default function Navbar() {
             key={item.name}
             onClick={() => handleNavigate(item.path)}
             className={`tracking-wide transition-all hover:text-accent ${
-              isScrolled ? "text-xs text-textMain font-bold" : "text-sm text-textMain font-medium"
+              isScrolled ? "text-xs text-textMain font-bold" : "text-sm text-textMain font-semibold"
             }`}
           >
             {item.name}

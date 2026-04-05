@@ -186,7 +186,7 @@ export default function HeroStack({ onImageClick }) {
                         src={card.image}
                         alt="Project"
                         className="w-full h-full object-cover rounded-xl cursor-pointer hover:scale-[1.02] transition-transform duration-500"
-                        onClick={() => isFront && onImageClick && onImageClick(card.image)}
+                        onClick={() => isFront && onImageClick && onImageClick(card.image, heroImages)}
                       />
                     ) : (
                       <div className="flex gap-2 h-full rounded-xl overflow-hidden">
@@ -194,13 +194,13 @@ export default function HeroStack({ onImageClick }) {
                           <img
                             src={card.images[0]}
                             className="w-full h-[calc(50%-4px)] object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-500"
-                            onClick={() => isFront && onImageClick && onImageClick(card.images[0])}
+                            onClick={() => isFront && onImageClick && onImageClick(card.images[0], heroImages)}
                             alt=""
                           />
                           <img
                             src={card.images[1]}
                             className="w-full h-[calc(50%-4px)] object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-500"
-                            onClick={() => isFront && onImageClick && onImageClick(card.images[1])}
+                            onClick={() => isFront && onImageClick && onImageClick(card.images[1], heroImages)}
                             alt=""
                           />
                         </div>
@@ -208,7 +208,7 @@ export default function HeroStack({ onImageClick }) {
                           <img
                             src={card.images[2]}
                             className="w-full h-full object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-500"
-                            onClick={() => isFront && onImageClick && onImageClick(card.images[2])}
+                            onClick={() => isFront && onImageClick && onImageClick(card.images[2], heroImages)}
                             alt=""
                           />
                         </div>
