@@ -10,7 +10,7 @@ export default function Navbar() {
   const { currentUser } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   const isHome = location.pathname === '/';
 
